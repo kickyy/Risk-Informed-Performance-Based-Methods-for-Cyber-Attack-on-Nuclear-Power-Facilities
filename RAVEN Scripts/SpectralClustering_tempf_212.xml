@@ -1,0 +1,127 @@
+<?xml version="1.0" ?>
+<Simulation verbosity="silent">
+  <TestInfo>
+    <name>framework/PostProcessors/TemporalDataMiningPostProcessor/Clustering/SpectralClustering</name>
+    <author>chenj</author>
+    <created>2016-02-26</created>
+    <classesTested>DataMining</classesTested>
+    <description>
+      Tests clustering with SpectralClustering with pivot parameter.
+    </description>
+    <revisions>
+      <revision author="wangc" date="2018-09-27">
+        As reported in issue #805, RAVEN will not allow input DataObject of PostProcessor to be output DataObject,
+        the output data object will be renamed, and the variable name of labels will be explicitly defined.
+      </revision>
+    </revisions>
+  </TestInfo>
+
+  <RunInfo>
+    <WorkingDir>SpectralClustering_tempf_212</WorkingDir>
+    <Sequence>readIn,pp1,writeOut</Sequence>
+    <batchSize>100</batchSize>
+  </RunInfo>
+
+  <Files>
+    <Input name="rawDataFile">../SpectralClustering_tempf_212/t_dump.csv</Input>
+  </Files>
+
+  <Models>
+    <PostProcessor name="SpectralClustering1" subType="DataMining">
+      <KDD labelFeature="labels" lib="SciKitLearn">
+        <SKLtype>cluster|SpectralClustering</SKLtype>
+        <Features>tempf</Features>
+        <n_clusters>8</n_clusters>
+        <random_state>0</random_state>
+      </KDD>
+      <pivotParameter>time</pivotParameter>
+    </PostProcessor>
+  </Models>
+
+  <Steps>
+    <IOStep name="readIn" pauseAtEnd="True">
+      <Input class="Files" type="">rawDataFile</Input>
+      <Output class="DataObjects" type="HistorySet">mDataRaw</Output>
+    </IOStep>
+    <PostProcess name="pp1" pauseAtEnd="True">
+      <Input class="DataObjects" type="HistorySet">mDataRaw</Input>
+      <Model class="Models" type="PostProcessor">SpectralClustering1</Model>
+      <SolutionExport class="DataObjects" type="HistorySet">clusterInfo</SolutionExport>
+      <Output class="DataObjects" type="HistorySet">mData</Output>
+      <Output class="OutStreams" type="Print">dummy</Output>
+    </PostProcess>
+    <IOStep name="writeOut" pauseAtEnd="True">
+      <Input class="DataObjects" type="HistorySet">mData</Input>
+      <Input class="DataObjects" type="HistorySet">clusterInfo</Input>
+      <Output class="OutStreams" type="Plot">plotRawData</Output>
+      <Output class="OutStreams" type="Plot">plotPPDataCentroid</Output>
+      <Output class="OutStreams" type="Print">centroid</Output>
+    </IOStep>
+  </Steps>
+
+  <OutStreams>
+    <Print name="dummy">
+      <type>csv</type>
+      <source>mData</source>
+    </Print>
+    <Print name="centroid">
+      <type>csv</type>
+      <source>clusterInfo</source>
+    </Print>
+    <Plot name="plotRawData" overwrite="True">
+      <plotSettings>
+        <plot>
+          <type>line</type>
+          <x>mData|Output|time</x>
+          <y>mData|Output|tempf</y>
+          <interpPointsX>300</interpPointsX>
+          <xlabel>Time</xlabel>
+          <ylabel>Temp</ylabel>
+        </plot>
+      </plotSettings>
+      <actions>
+        <how>png</how>
+      </actions>
+    </Plot>
+    <Plot name="plotPPDataCentroid" overwrite="True">
+      <plotSettings>
+        <plot>
+          <type>line</type>
+          <x>clusterInfo|Output|time</x>
+          <y>clusterInfo|Output|tempf</y>
+          <interpPointsX>300</interpPointsX>
+          <xlabel>Time</xlabel>
+          <ylabel>Temp</ylabel>
+        </plot>
+      </plotSettings>
+      <actions>
+        <how>png</how>
+      </actions>
+    </Plot>
+  </OutStreams>
+
+  <DataObjects>
+    <HistorySet name="clusterInfo">
+      <Input>labels</Input>
+      <Output>tempf</Output>
+      <options>
+        <pivotParameter>time</pivotParameter>
+      </options>
+    </HistorySet>
+    <HistorySet name="mData">
+      <Input>n</Input>
+      <Output>tempf,labels</Output>
+      <options>
+        <pivotParameter>time</pivotParameter>
+      </options>
+    </HistorySet>
+    <HistorySet name="mDataRaw">
+      <Input>n</Input>
+      <Output>tempf</Output>
+      <options>
+        <pivotParameter>time</pivotParameter>
+      </options>
+    </HistorySet>
+  </DataObjects>
+
+</Simulation>
