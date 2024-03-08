@@ -1,0 +1,143 @@
+<?xml version="1.0" ?>
+<Simulation>
+  <!-- TestInfo -->
+  <TestInfo>
+    <name>CyberRelapLimitSurface</name>
+    <author>gisondia</author>
+    <created>2023-3-20</created>
+    <classesTested>Samplers.LimitSurfaceSearch, Models.Code.RELAP5, Models.ROM</classesTested>
+    <description>
+        Limit Surface Search with Relap5 deck
+    </description>
+  </TestInfo>
+
+  <RunInfo>
+    <WorkingDir>CyberRelapLimitSurface</WorkingDir>
+    <Sequence>adapt,adaptdump</Sequence>
+    <batchSize>20</batchSize>
+    <maxQueueSize>1</maxQueueSize>
+  </RunInfo>
+
+  <Steps>
+    <MultiRun name="adapt" pauseAtEnd="true">
+      <Input class="Files" type="">inputDeck</Input>
+      <Input class="Files" type="">fluidsProperties</Input>
+      <Model class="Models" type="Code">MyRELAP</Model>
+      <Sampler class="Samplers" type="LimitSurfaceSearch">adaptiveSearch</Sampler>
+      <SolutionExport class="DataObjects" type="PointSet">limitSurface</SolutionExport>
+      <Output class="DataObjects" type="PointSet">sampledPoints</Output>
+      <Output class="DataObjects" type="HistorySet">outputResults_Hist</Output>
+    </MultiRun>
+    <IOStep name="adaptdump" pauseAtEnd="true">
+      <Input class="DataObjects" type="PointSet">sampledPoints</Input>
+      <Input class="DataObjects" type="PointSet">limitSurface</Input>
+      <!--<Input class="DataObjects" type="HistorySet">outputResults_Hist</Input>-->
+      <Output class="OutStreams" type="Print">limitSurfaceDump</Output>
+      <Output class="OutStreams" type="Print">sampledPointsDump</Output>
+      <!--<Output class="OutStreams" type="Print">outputResults_Hist_Print</Output>-->
+      <Output class="OutStreams" type="Plot">limitSurfacePlot</Output>
+    </IOStep>
+  </Steps>
+  
+  <Files>
+    <Input name="inputDeck" type="" >typpwr2.i</Input>
+    <Input name="fluidsProperties"  type="" >tpfh2o</Input>
+  </Files>
+  
+  <Models>
+    <Code name="MyRELAP" subType="Relap5">
+      <executable>
+          relap5
+      </executable>
+      <csv>True</csv>
+    </Code>
+    <ROM name="accelerated_ROM" subType="SVC">
+      <Features>513:6</Features>
+      <Target>decision</Target>
+      <kernel>rbf</kernel>
+      <gamma>10</gamma>
+      <tol>1e-5</tol>
+      <C>50</C>
+      <random_state>0</random_state>
+    </ROM>
+  </Models>
+
+  <Functions>
+    <External file="../CyberRelapLimitSurface/adaptive_test_goal" name="decision">
+      <variables>htchf_204100801, htrnr_2041008_1</variables>
+    </External>
+  </Functions>
+
+  <Distributions>
+    <Uniform name="tripdist" verbosity="debug">
+        <lowerBound>1</lowerBound>
+        <upperBound>400</upperBound>
+      </Uniform>
+  </Distributions>
+
+  <Samplers>
+    <LimitSurfaceSearch name="adaptiveSearch">
+      <ROM class="Models" type="ROM">accelerated_ROM</ROM>
+      <Function class="Functions" type="External">decision</Function>
+      <TargetEvaluation class="DataObjects" type="PointSet">sampledPoints</TargetEvaluation>
+      <Convergence forceIteration="False" limit="3000" persistence="30" weight="value">1e-3</Convergence>
+      <variable name="513:6">
+        <distribution>tripdist</distribution>
+      </variable>
+    </LimitSurfaceSearch>
+  </Samplers>
+  
+  <DataObjects>
+    <PointSet name="sampledPoints">
+      <Input>513:6</Input>
+      <Output>htchf_204100801, htrnr_2041008_1, htrg_204100801</Output>
+    </PointSet>
+    <PointSet name="limitSurface">
+      <Input>513:6</Input>
+      <Output>decision</Output>
+    </PointSet>
+    <HistorySet name="outputResults_Hist">
+          <Input>513:6</Input>
+          <Output>htvat_2041008, htchf_204100801, htrnr_2041008_1, p_150010000, mflowj_157000000, mflowj_505000000, mflowj_181000000, mflowj_281000000,h2gen_2041008,htrg_204100801, time</Output>
+      </HistorySet>
+  </DataObjects>
+
+  <OutStreams>
+    <Print name="limitSurfaceDump">
+      <type>csv</type>
+      <source>limitSurface</source>
+    </Print>
+    <Print name="sampledPointsDump">
+      <type>csv</type>
+      <source>sampledPoints</source>
+    </Print>
+   <!-- <Print name="outputResults_Hist_Print">
+          <type>csv</type>
+          <source>outputResults_Hist</source>
+      </Print>-->
+    <Plot name="limitSurfacePlot" overwrite="false" verbosity="debug">
+      <plotSettings>
+        <plot>
+          <type>scatter</type>
+          <z>sampledPoints|Input|513:6</z>
+          <y>sampledPoints|Output|htchf_204100801</y>
+          <x>sampledPoints|Output|htrnr_2041008_1</x>
+        </plot>
+        <xlabel>HF</xlabel>
+        <ylabel>CHF</ylabel>
+        <zlabel>Time to Recover</zlabel>
+      </plotSettings>
+      <actions>
+        <how>png</how>
+        <range>
+          <xmin>0.0</xmin>
+          <xmax>50.0</xmax>
+        </range>
+        <title>
+          <text> </text>
+        </title>
+      </actions>
+    </Plot>
+  </OutStreams>
+
+</Simulation>
